@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getUserRole } from "@/lib/auth";
 
 export interface Tool {
   id: string;
@@ -21,8 +22,33 @@ export interface UserToolAccess {
 export async function getUserTools(userId: string): Promise<UserToolAccess[]> {
   try {
     const supabase = await createClient();
+    const userRole = await getUserRole();
     
-    // Simple join query to get user's tools
+    // If user is admin, return all active tools
+    if (userRole === 'admin') {
+      const { data: toolsData, error: toolsError } = await supabase
+        .from('tools')
+        .select('*')
+        .eq('is_active', true)
+        .order('name');
+      
+      if (toolsError) {
+        console.error('Database query error:', toolsError.message);
+        return [];
+      }
+      
+      // Transform tools to UserToolAccess format for admin
+      return (toolsData || []).map(tool => ({
+        id: `admin-${tool.id}`,
+        user_id: userId,
+        tool_id: tool.id,
+        unlocked_at: new Date().toISOString(),
+        unlocked_by: 'admin_privilege',
+        tool: tool
+      }));
+    }
+    
+    // For regular users, get their specific tool access
     const { data, error } = await supabase
       .from('user_tool_access')
       .select(`
@@ -87,7 +113,21 @@ export async function getToolBySlug(slug: string): Promise<Tool | null> {
 
 export async function hasToolAccess(userId: string, toolId: string): Promise<boolean> {
   const supabase = await createClient();
+  const userRole = await getUserRole();
   
+  // Admin users have access to all active tools
+  if (userRole === 'admin') {
+    const { data: toolData, error: toolError } = await supabase
+      .from('tools')
+      .select('id')
+      .eq('id', toolId)
+      .eq('is_active', true)
+      .single();
+    
+    return !toolError && !!toolData;
+  }
+  
+  // For regular users, check their specific access
   const { data, error } = await supabase
     .from('user_tool_access')
     .select('id')

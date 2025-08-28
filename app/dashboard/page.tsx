@@ -1,4 +1,4 @@
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, getUserRole } from "@/lib/auth";
 import { getUserTools } from "@/lib/tools";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,14 +7,23 @@ import { ExternalLink } from "lucide-react";
 
 export default async function DashboardPage() {
   const user = await requireAuth();
+  const userRole = await getUserRole();
   const userTools = await getUserTools(user.id);
+  const isAdmin = userRole === 'admin';
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Your Dashboard</h1>
+        <div className="flex items-center gap-3 mb-2">
+          <h1 className="text-3xl font-bold">Your Dashboard</h1>
+          {isAdmin && (
+            <Badge variant="destructive" className="text-xs">
+              Admin Access
+            </Badge>
+          )}
+        </div>
         <p className="text-muted-foreground">
-          Welcome back, {user.email}! Here are the tools you have access to.
+          Welcome back, {user.email}! {isAdmin ? 'As an admin, you have access to all tools.' : 'Here are the tools you have access to.'}
         </p>
       </div>
 
@@ -39,7 +48,13 @@ export default async function DashboardPage() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg">{userTool.tool.name}</CardTitle>
-                  <Badge variant="secondary">Active</Badge>
+                  <div className="flex gap-2">
+                    {userTool.unlocked_by === 'admin_privilege' ? (
+                      <Badge variant="destructive" className="text-xs">Admin</Badge>
+                    ) : (
+                      <Badge variant="secondary">Active</Badge>
+                    )}
+                  </div>
                 </div>
                 <CardDescription>
                   {userTool.tool.description}
@@ -48,7 +63,11 @@ export default async function DashboardPage() {
               <CardContent>
                 <div className="flex items-center justify-between">
                   <div className="text-sm text-muted-foreground">
-                    Unlocked: {new Date(userTool.unlocked_at).toLocaleDateString()}
+                    {userTool.unlocked_by === 'admin_privilege' ? (
+                      <span className="text-orange-600 font-medium">Admin Privilege</span>
+                    ) : (
+                      <>Unlocked: {new Date(userTool.unlocked_at).toLocaleDateString()}</>
+                    )}
                   </div>
                   <Link
                     href={`/tool/${userTool.tool.slug}`}
