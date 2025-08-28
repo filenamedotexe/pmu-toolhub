@@ -45,7 +45,7 @@ export function AdminUserTable() {
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [fetchUsers]);
 
   useEffect(() => {
     const filtered = users.filter(user =>

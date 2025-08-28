@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { CheckCircle, Lock, ExternalLink, AlertCircle } from "lucide-react";
-import { redirect } from "next/navigation";
 
 interface UnlockPageProps {
   params: Promise<{ slug: string }>;
@@ -26,7 +25,7 @@ export default async function UnlockPage(props: UnlockPageProps) {
             </div>
             <CardTitle className="text-xl">Tool Not Found</CardTitle>
             <CardDescription>
-              The tool you're trying to unlock doesn't exist or is no longer available.
+              The tool you&apos;re trying to unlock doesn&apos;t exist or is no longer available.
             </CardDescription>
           </CardHeader>
           <CardContent>

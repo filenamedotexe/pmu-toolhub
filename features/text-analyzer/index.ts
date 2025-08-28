@@ -1,0 +1,1 @@
+export { TextAnalyzerTool } from './text-analyzer-tool';

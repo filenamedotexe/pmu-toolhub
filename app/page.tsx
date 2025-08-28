@@ -1,10 +1,8 @@
 import { getUser } from "@/lib/auth";
-import { getUserTools } from "@/lib/tools";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ExternalLink, Zap } from "lucide-react";
+import { Zap } from "lucide-react";
 import { redirect } from "next/navigation";
 
 export default async function Home() {

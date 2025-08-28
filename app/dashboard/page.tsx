@@ -24,7 +24,7 @@ export default async function DashboardPage() {
             <div className="max-w-md mx-auto">
               <h3 className="text-xl font-semibold mb-2">No Tools Unlocked Yet</h3>
               <p className="text-muted-foreground mb-4">
-                You haven't unlocked any tools yet. Get special unlock links to access powerful tools!
+                You haven&apos;t unlocked any tools yet. Get special unlock links to access powerful tools!
               </p>
               <p className="text-sm text-muted-foreground">
                 Contact us to get access to our suite of productivity tools.

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Button } from "./ui/button";
 import { AuthButton } from "./auth-button";
 import { ThemeSwitcher } from "./theme-switcher";
 import { getUser, getUserRole } from "@/lib/auth";
