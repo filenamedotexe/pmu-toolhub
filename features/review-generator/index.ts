@@ -1,1 +1,0 @@
-export { ReviewGeneratorTool } from './review-generator-tool';

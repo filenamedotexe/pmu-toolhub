@@ -14,6 +14,8 @@
 - **UI**: Tailwind CSS + shadcn/ui components
 - **Icons**: Lucide React
 - **Notifications**: Sonner (toast notifications)
+- **External APIs**: Google Places API (New) for business search
+- **Additional Libraries**: @googlemaps/places for Places API integration
 
 ## 🔐 Authentication System  
 - ✅ **Google OAuth** - One-click social login
@@ -34,6 +36,11 @@ tools: id, name, slug, description, is_active, created_at, updated_at
 
 -- User tool access tracking
 user_tool_access: id, user_id, tool_id, unlocked_at, unlocked_by
+
+-- Review links data (NEW)
+review_links: id, user_id, gmb_business_name, gmb_place_id, gmb_review_link, 
+             gmb_completed, facebook_page_name, facebook_review_link, 
+             facebook_completed, created_at, updated_at
 ```
 
 ## 🎯 Core Features Implemented
@@ -64,10 +71,13 @@ user_tool_access: id, user_id, tool_id, unlocked_at, unlocked_by
 - ✅ Real-time access control
 
 ### 5. Tool System
-- ✅ Three sample tools: Calculator, Review Generator, Text Analyzer
+- ✅ **Calculator Tool**: Advanced calculator with basic arithmetic operations
+- ✅ **Review Link Generator**: Generate direct review links for Google My Business and Facebook pages
+- ✅ **Text Analyzer**: Comprehensive text analysis and metrics tool
 - ✅ Access-controlled tool pages
 - ✅ Extensible architecture for adding new tools
-- ✅ Coming soon placeholders with tool-specific UIs
+- ✅ Google Places API integration for business search
+- ✅ Data persistence for user-specific tool configurations
 
 ## 🔗 Key URLs & Routes
 
@@ -84,7 +94,7 @@ user_tool_access: id, user_id, tool_id, unlocked_at, unlocked_by
 
 ### Sample Unlock URLs
 - http://localhost:3000/unlock/calculator
-- http://localhost:3000/unlock/review-generator  
+- http://localhost:3000/unlock/review-link-generator  
 - http://localhost:3000/unlock/text-analyzer
 
 ## 🛠 Development Commands
@@ -104,10 +114,19 @@ pnpm install
 app/
 ├── (auth)/               # Authentication pages
 ├── admin/               # Admin dashboard & components  
+├── api/                 # API routes
+│   ├── review-links/    # Review links data endpoints
+│   └── google-places-search/ # Google Places API proxy
 ├── dashboard/           # User dashboard
 ├── tool/[slug]/         # Dynamic tool pages
 ├── unlock/[slug]/       # Dynamic unlock URLs
 └── layout.tsx           # Root layout with navigation
+
+features/
+├── calculator/          # Calculator tool components
+├── review-link-generator/ # Review link generator components
+├── text-analyzer/       # Text analyzer components
+└── shared/              # Shared tool components
 
 components/
 ├── navigation.tsx       # Main navigation with auth
@@ -117,8 +136,14 @@ components/
 lib/
 ├── auth.ts             # Authentication utilities
 ├── tools.ts            # Tool management functions
+├── tool-registry.ts    # Tool component registry
 ├── supabase/           # Database client setup
 └── utils.ts            # Utility functions
+
+supabase/
+└── migrations/         # Database migration files
+    ├── 001_initial_schema.sql
+    └── 002_review_links_table.sql
 ```
 
 ## 🎨 UI/UX Features

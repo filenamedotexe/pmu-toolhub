@@ -3,7 +3,7 @@ import { ComponentType } from "react";
 
 // Tool component imports - using feature-based organization (2025 best practice)
 import { CalculatorTool } from "@/features/calculator";
-import { ReviewGeneratorTool } from "@/features/review-generator";
+import { ReviewLinkGeneratorTool } from "@/features/review-link-generator";
 import { TextAnalyzerTool } from "@/features/text-analyzer";
 
 export interface ToolComponent {
@@ -19,10 +19,10 @@ export const TOOL_REGISTRY: Record<string, ToolComponent> = {
     description: 'Advanced calculator with basic arithmetic operations',
     category: 'utilities'
   },
-  'review-generator': {
-    component: ReviewGeneratorTool,
-    description: 'AI-powered review generator for businesses',
-    category: 'content'
+  'review-link-generator': {
+    component: ReviewLinkGeneratorTool,
+    description: 'Generate direct review links for Google My Business and Facebook pages',
+    category: 'business'
   },
   'text-analyzer': {
     component: TextAnalyzerTool,

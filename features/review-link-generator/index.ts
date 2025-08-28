@@ -1,0 +1,1 @@
+export { ReviewLinkGeneratorTool } from './review-link-generator-tool';

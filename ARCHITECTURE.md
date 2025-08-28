@@ -12,7 +12,7 @@
 │   └── unlock/[slug]/     # Dynamic unlock URLs
 ├── features/              # Feature-based organization (2025)
 │   ├── calculator/        # Calculator feature
-│   ├── review-generator/  # Review generator feature
+│   ├── review-link-generator/  # Review link generator feature
 │   ├── text-analyzer/     # Text analyzer feature
 │   └── shared/           # Shared tool components
 ├── components/           # Reusable UI components
@@ -21,7 +21,10 @@
 │   ├── tool-registry.ts # Central tool registry
 │   ├── auth.ts         # Authentication helpers
 │   └── tools.ts        # Tool management functions
-└── supabase/           # Database migrations
+├── supabase/           # Database migrations
+└── app/api/            # API routes
+    ├── review-links/   # Review links data endpoints
+    └── google-places-search/ # Google Places API proxy
 ```
 
 ## 🏗️ Architecture Principles
@@ -159,10 +162,11 @@ All tools use the shared `ToolLayout` component for:
    - State management for calculations
    - Professional calculator UI
 
-2. **Review Generator** (`features/review-generator/`)
-   - AI-like review generation
-   - Multiple review types and ratings
-   - Business name and key points input
+2. **Review Link Generator** (`features/review-link-generator/`)
+   - Generate direct review links for Google My Business and Facebook
+   - Google Places API integration for business search
+   - Data persistence for user configurations
+   - Completion badges and copy-paste functionality
 
 3. **Text Analyzer** (`features/text-analyzer/`)
    - Comprehensive text metrics

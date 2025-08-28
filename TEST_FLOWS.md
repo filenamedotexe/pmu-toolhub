@@ -33,7 +33,7 @@
 ### 5. Tool Access (/tool/[slug])
 - [ ] `/tool/calculator` shows access denied if not unlocked
 - [ ] Shows tool interface if user has access
-- [ ] All three sample tools (calculator, review-generator, text-analyzer) work
+- [ ] All three sample tools (calculator, review-link-generator, text-analyzer) work
 - [ ] Navigation breadcrumbs work
 
 ### 6. Admin Dashboard (/admin) - Admin User
@@ -50,7 +50,7 @@
 - Sign Up: http://localhost:3000/auth/sign-up
 - Sign In: http://localhost:3000/auth/login
 - Unlock Calculator: http://localhost:3000/unlock/calculator
-- Unlock Review Gen: http://localhost:3000/unlock/review-generator
+- Unlock Review Link Gen: http://localhost:3000/unlock/review-link-generator
 - Unlock Text Analyzer: http://localhost:3000/unlock/text-analyzer
 - Calculator Tool: http://localhost:3000/tool/calculator
 - Admin: http://localhost:3000/admin
@@ -61,7 +61,16 @@ Check these tables after testing:
 SELECT * FROM users;
 SELECT * FROM tools;
 SELECT * FROM user_tool_access;
+SELECT * FROM review_links; -- New table for review link data
 ```
+
+## Review Link Generator Specific Tests
+- [ ] Google Places API business search works (requires API key)
+- [ ] Facebook page name input generates correct review link
+- [ ] Completion badges appear when links are generated
+- [ ] Copy-paste functionality works for generated links
+- [ ] User data persists across sessions
+- [ ] External link buttons open review pages in new tabs
 
 ## Expected Behavior Summary
 1. Anonymous users see landing page and can sign up
