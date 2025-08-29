@@ -23,8 +23,10 @@ interface AuthFormProps extends React.ComponentPropsWithoutRef<"div"> {
 
 export function AuthForm({ className, mode, ...props }: AuthFormProps) {
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [magicLinkLoading, setMagicLinkLoading] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
 
   const supabase = createClient();
 
@@ -61,6 +63,35 @@ export function AuthForm({ className, mode, ...props }: AuthFormProps) {
       toast.error('Failed to authenticate with Apple');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handlePasswordAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      toast.error('Please enter both email and password');
+      return;
+    }
+
+    setPasswordLoading(true);
+    try {
+      const { data, error } = mode === 'login' 
+        ? await supabase.auth.signInWithPassword({ email, password })
+        : await supabase.auth.signUp({ email, password });
+        
+      if (error) throw error;
+      
+      if (mode === 'signup' && data.user && !data.session) {
+        toast.success('Check your email to confirm your account!');
+      } else {
+        toast.success(mode === 'login' ? 'Welcome back!' : 'Account created!');
+        window.location.href = '/dashboard';
+      }
+    } catch (error: unknown) {
+      console.error('Password auth error:', error);
+      toast.error((error as Error).message || 'Authentication failed');
+    } finally {
+      setPasswordLoading(false);
     }
   };
 
@@ -157,8 +188,8 @@ export function AuthForm({ className, mode, ...props }: AuthFormProps) {
               </div>
             </div>
 
-            {/* Magic Link Form */}
-            <form onSubmit={handleMagicLink} className="space-y-4">
+            {/* Email/Password Form */}
+            <form onSubmit={handlePasswordAuth} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email address</Label>
                 <Input
@@ -170,8 +201,42 @@ export function AuthForm({ className, mode, ...props }: AuthFormProps) {
                   required
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
               <Button 
                 type="submit" 
+                className="w-full" 
+                disabled={passwordLoading}
+              >
+                {passwordLoading ? 'Loading...' : (mode === 'login' ? 'Sign In' : 'Sign Up')}
+              </Button>
+            </form>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <Separator className="w-full" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
+                  Or use magic link
+                </span>
+              </div>
+            </div>
+
+            {/* Magic Link Form */}
+            <form onSubmit={handleMagicLink} className="space-y-4">
+              <Button 
+                type="submit" 
+                variant="outline"
                 className="w-full" 
                 disabled={magicLinkLoading}
               >

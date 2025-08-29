@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { ToolLayout } from "../shared";
 import { Tool } from "@/lib/tools";
 import { useState, useEffect } from "react";
-import { Loader2, Copy, CheckCircle2, Search, ExternalLink } from "lucide-react";
+import { Loader2, Copy, CheckCircle2, Search, ExternalLink, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 
 interface ReviewLinkGeneratorToolProps {
@@ -144,6 +145,14 @@ export function ReviewLinkGeneratorTool({ tool }: ReviewLinkGeneratorToolProps) 
   const generateGMBLink = async () => {
     if (!selectedBusiness) return;
 
+    // Check if link already exists and ask for confirmation
+    if (reviewData.gmbCompleted && reviewData.gmbReviewLink) {
+      const confirmReplace = window.confirm(
+        `You already have a Google My Business review link for "${reviewData.gmbBusinessName}". Do you want to replace it with a new link for "${selectedBusiness.name}"?`
+      );
+      if (!confirmReplace) return;
+    }
+
     setIsGeneratingGMB(true);
     try {
       const reviewLink = `https://search.google.com/local/writereview?placeid=${selectedBusiness.place_id}`;
@@ -165,6 +174,14 @@ export function ReviewLinkGeneratorTool({ tool }: ReviewLinkGeneratorToolProps) 
 
   const generateFacebookLink = async () => {
     if (!reviewData.facebookPageName?.trim()) return;
+
+    // Check if link already exists and ask for confirmation
+    if (reviewData.facebookCompleted && reviewData.facebookReviewLink) {
+      const confirmReplace = window.confirm(
+        `You already have a Facebook review link. Do you want to replace it with a new link for "${reviewData.facebookPageName}"?`
+      );
+      if (!confirmReplace) return;
+    }
 
     setIsGeneratingFB(true);
     try {
@@ -198,11 +215,71 @@ export function ReviewLinkGeneratorTool({ tool }: ReviewLinkGeneratorToolProps) 
     return links.join('\n');
   };
 
-  const handleCopyAll = () => {
+  const handleCopyAll = async () => {
     const text = generateCopyText();
     if (text) {
-      navigator.clipboard.writeText(text);
+      try {
+        await navigator.clipboard.writeText(text);
+        toast.success('All review links copied to clipboard!');
+      } catch (error) {
+        toast.error('Failed to copy links');
+      }
     }
+  };
+
+  const handleCopyGMBLink = async () => {
+    if (reviewData.gmbReviewLink) {
+      try {
+        await navigator.clipboard.writeText(reviewData.gmbReviewLink);
+        toast.success('GMB review link copied!');
+      } catch (error) {
+        toast.error('Failed to copy link');
+      }
+    }
+  };
+
+  const handleCopyFacebookLink = async () => {
+    if (reviewData.facebookReviewLink) {
+      try {
+        await navigator.clipboard.writeText(reviewData.facebookReviewLink);
+        toast.success('Facebook review link copied!');
+      } catch (error) {
+        toast.error('Failed to copy link');
+      }
+    }
+  };
+
+  const handleRemoveGMBLink = async () => {
+    const confirmRemove = window.confirm(
+      'Are you sure you want to remove your Google My Business review link?'
+    );
+    if (!confirmRemove) return;
+
+    const newData = {
+      gmbBusinessName: null,
+      gmbPlaceId: null,
+      gmbReviewLink: null,
+      gmbCompleted: false,
+    };
+    
+    await saveReviewData(newData);
+    setBusinessSearch('');
+    setSelectedBusiness(null);
+  };
+
+  const handleRemoveFacebookLink = async () => {
+    const confirmRemove = window.confirm(
+      'Are you sure you want to remove your Facebook review link?'
+    );
+    if (!confirmRemove) return;
+
+    const newData = {
+      facebookPageName: '',
+      facebookReviewLink: null,
+      facebookCompleted: false,
+    };
+    
+    await saveReviewData(newData);
   };
 
   if (isLoading) {
@@ -217,7 +294,7 @@ export function ReviewLinkGeneratorTool({ tool }: ReviewLinkGeneratorToolProps) 
 
   return (
     <ToolLayout tool={tool}>
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* GMB Section */}
         <Card>
           <CardHeader>
@@ -261,10 +338,10 @@ export function ReviewLinkGeneratorTool({ tool }: ReviewLinkGeneratorToolProps) 
                     <button
                       key={business.place_id}
                       onClick={() => selectBusiness(business)}
-                      className="w-full text-left px-4 py-3 hover:bg-muted border-b last:border-b-0"
+                      className="w-full text-left px-3 sm:px-4 py-2 sm:py-3 hover:bg-muted border-b last:border-b-0"
                     >
-                      <div className="font-medium">{business.name}</div>
-                      <div className="text-sm text-muted-foreground">{business.formatted_address}</div>
+                      <div className="font-medium text-sm sm:text-base truncate">{business.name}</div>
+                      <div className="text-xs sm:text-sm text-muted-foreground break-words">{business.formatted_address}</div>
                     </button>
                   ))}
                 </div>
@@ -272,9 +349,9 @@ export function ReviewLinkGeneratorTool({ tool }: ReviewLinkGeneratorToolProps) 
             </div>
 
             {selectedBusiness && (
-              <div className="p-4 bg-muted rounded-lg">
-                <div className="font-medium">{selectedBusiness.name}</div>
-                <div className="text-sm text-muted-foreground">{selectedBusiness.formatted_address}</div>
+              <div className="p-3 sm:p-4 bg-muted rounded-lg">
+                <div className="font-medium text-sm sm:text-base break-words">{selectedBusiness.name}</div>
+                <div className="text-xs sm:text-sm text-muted-foreground break-words">{selectedBusiness.formatted_address}</div>
               </div>
             )}
 
@@ -294,18 +371,39 @@ export function ReviewLinkGeneratorTool({ tool }: ReviewLinkGeneratorToolProps) 
             </Button>
 
             {reviewData.gmbReviewLink && (
-              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
+              <div className="p-3 sm:p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 gap-2">
+                  <div className="flex-1 min-w-0">
                     <div className="font-medium text-green-800">Review Link Generated!</div>
-                    <div className="text-sm text-green-600 break-all">{reviewData.gmbReviewLink}</div>
+                    <div className="text-xs sm:text-sm text-green-600 break-all overflow-wrap-anywhere word-break-all">{reviewData.gmbReviewLink}</div>
                   </div>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => window.open(reviewData.gmbReviewLink!, '_blank')}
+                    className="shrink-0 w-auto sm:w-auto"
                   >
                     <ExternalLink className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCopyGMBLink}
+                    className="flex-1 min-h-[36px] text-xs sm:text-sm px-3 py-2"
+                  >
+                    <Copy className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 shrink-0" />
+                    <span className="truncate">Copy Link</span>
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleRemoveGMBLink}
+                    className="flex-1 min-h-[36px] text-xs sm:text-sm px-3 py-2"
+                  >
+                    <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 shrink-0" />
+                    <span className="truncate">Remove</span>
                   </Button>
                 </div>
               </div>
@@ -363,18 +461,39 @@ export function ReviewLinkGeneratorTool({ tool }: ReviewLinkGeneratorToolProps) 
             </Button>
 
             {reviewData.facebookReviewLink && (
-              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
+              <div className="p-3 sm:p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 gap-2">
+                  <div className="flex-1 min-w-0">
                     <div className="font-medium text-green-800">Review Link Generated!</div>
-                    <div className="text-sm text-green-600 break-all">{reviewData.facebookReviewLink}</div>
+                    <div className="text-xs sm:text-sm text-green-600 break-all overflow-wrap-anywhere word-break-all">{reviewData.facebookReviewLink}</div>
                   </div>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => window.open(reviewData.facebookReviewLink!, '_blank')}
+                    className="shrink-0 w-auto sm:w-auto"
                   >
                     <ExternalLink className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCopyFacebookLink}
+                    className="flex-1 min-h-[36px] text-xs sm:text-sm px-3 py-2"
+                  >
+                    <Copy className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 shrink-0" />
+                    <span className="truncate">Copy Link</span>
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleRemoveFacebookLink}
+                    className="flex-1 min-h-[36px] text-xs sm:text-sm px-3 py-2"
+                  >
+                    <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 shrink-0" />
+                    <span className="truncate">Remove</span>
                   </Button>
                 </div>
               </div>
@@ -392,12 +511,12 @@ export function ReviewLinkGeneratorTool({ tool }: ReviewLinkGeneratorToolProps) 
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="p-4 bg-muted rounded-lg mb-4">
-                <pre className="text-sm whitespace-pre-line">{generateCopyText()}</pre>
+              <div className="p-3 sm:p-4 bg-muted rounded-lg mb-4 overflow-hidden">
+                <pre className="text-xs sm:text-sm whitespace-pre-wrap break-words font-mono leading-relaxed">{generateCopyText()}</pre>
               </div>
-              <Button onClick={handleCopyAll} className="w-full">
-                <Copy className="mr-2 h-4 w-4" />
-                Copy All Links
+              <Button onClick={handleCopyAll} className="w-full min-h-[44px] text-sm px-4 py-3">
+                <Copy className="mr-2 h-4 w-4 shrink-0" />
+                <span className="truncate">Copy All Links</span>
               </Button>
             </CardContent>
           </Card>

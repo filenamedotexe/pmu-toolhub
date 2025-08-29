@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     
     // Prepare data for database (convert camelCase to snake_case)
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       user_id: user.id
     }
     

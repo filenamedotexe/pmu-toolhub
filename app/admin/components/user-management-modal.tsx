@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,11 +47,7 @@ export function UserManagementModal({ user, onUpdate }: UserManagementModalProps
 
   const supabase = createClient();
 
-  useEffect(() => {
-    fetchData();
-  }, [user.id, fetchData]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       // Fetch all tools
       const { data: toolsData, error: toolsError } = await supabase
@@ -81,7 +77,11 @@ export function UserManagementModal({ user, onUpdate }: UserManagementModalProps
     } finally {
       setLoading(false);
     }
-  };
+  }, [user.id, supabase]);
+
+  useEffect(() => {
+    fetchData();
+  }, [user.id, fetchData]);
 
   const hasAccess = (toolId: string) => {
     return userAccess.some(access => access.tool_id === toolId);
