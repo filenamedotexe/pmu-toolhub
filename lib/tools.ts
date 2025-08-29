@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { getUserRole } from "@/lib/auth";
 
 export interface Tool {
   id: string;
@@ -14,7 +13,8 @@ export interface UserToolAccess {
   id: string;
   user_id: string;
   tool_id: string;
-  unlocked_at: string;
+  last_unlocked_at: string;
+  last_revoked_at?: string;
   unlocked_by: string;
   tool: Tool;
 }
@@ -22,40 +22,18 @@ export interface UserToolAccess {
 export async function getUserTools(userId: string): Promise<UserToolAccess[]> {
   try {
     const supabase = await createClient();
-    const userRole = await getUserRole();
     
-    // If user is admin, return all active tools
-    if (userRole === 'admin') {
-      const { data: toolsData, error: toolsError } = await supabase
-        .from('tools')
-        .select('*')
-        .eq('is_active', true)
-        .order('name');
-      
-      if (toolsError) {
-        console.error('Database query error:', toolsError.message);
-        return [];
-      }
-      
-      // Transform tools to UserToolAccess format for admin
-      return (toolsData || []).map(tool => ({
-        id: `admin-${tool.id}`,
-        user_id: userId,
-        tool_id: tool.id,
-        unlocked_at: new Date().toISOString(),
-        unlocked_by: 'admin_privilege',
-        tool: tool
-      }));
-    }
-    
-    // For regular users, get their specific tool access
+    // Get user's actual tool access from database (applies to all users, including admins)
+    // This ensures the dashboard shows only tools the user actually has access to
+    // Exclude tools that have been revoked (last_revoked_at is not null)
     const { data, error } = await supabase
       .from('user_tool_access')
       .select(`
         *,
         tools (*)
       `)
-      .eq('user_id', userId);
+      .eq('user_id', userId)
+      .is('last_revoked_at', null);
       
     if (error) {
       // Don't log expected errors  
@@ -113,26 +91,16 @@ export async function getToolBySlug(slug: string): Promise<Tool | null> {
 
 export async function hasToolAccess(userId: string, toolId: string): Promise<boolean> {
   const supabase = await createClient();
-  const userRole = await getUserRole();
   
-  // Admin users have access to all active tools
-  if (userRole === 'admin') {
-    const { data: toolData, error: toolError } = await supabase
-      .from('tools')
-      .select('id')
-      .eq('id', toolId)
-      .eq('is_active', true)
-      .single();
-    
-    return !toolError && !!toolData;
-  }
-  
-  // For regular users, check their specific access
+  // Check actual database access for all users (including admins)
+  // This ensures consistent behavior between dashboard and tool access
+  // Only return true if tool access exists AND is not revoked
   const { data, error } = await supabase
     .from('user_tool_access')
-    .select('id')
+    .select('id, last_revoked_at')
     .eq('user_id', userId)
     .eq('tool_id', toolId)
+    .is('last_revoked_at', null)
     .single();
     
   return !error && !!data;

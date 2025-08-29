@@ -5,6 +5,7 @@ import { ComponentType } from "react";
 import { CalculatorTool } from "@/features/calculator";
 import { ReviewLinkGeneratorTool } from "@/features/review-link-generator";
 import { TextAnalyzerTool } from "@/features/text-analyzer";
+import { PMURevenueCalculatorTool } from "@/features/pmu-revenue-calculator";
 
 export interface ToolComponent {
   component: ComponentType<{ tool: Tool }>;
@@ -28,6 +29,11 @@ export const TOOL_REGISTRY: Record<string, ToolComponent> = {
     component: TextAnalyzerTool,
     description: 'Comprehensive text analysis and metrics tool',
     category: 'analysis'
+  },
+  'pmu-revenue-calculator': {
+    component: PMURevenueCalculatorTool,
+    description: 'AI-powered revenue optimization for PMU artists',
+    category: 'business'
   }
 };
 

@@ -3,11 +3,14 @@
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { CheckCircle, XCircle, Calendar, User } from "lucide-react";
+import { CheckCircle, XCircle, Calendar, User, Copy, Link, Share } from "lucide-react";
 import { toast } from "sonner";
+import { formatDateTimeCST } from "@/lib/date-utils";
+import { useCopyToClipboard } from "@/lib/hooks/use-copy-to-clipboard";
 
 interface Tool {
   id: string;
@@ -21,7 +24,8 @@ interface UserToolAccess {
   id: string;
   user_id: string;
   tool_id: string;
-  unlocked_at: string;
+  last_unlocked_at: string;
+  last_revoked_at?: string;
   unlocked_by: string;
   tool: Tool;
 }
@@ -46,6 +50,13 @@ export function UserManagementModal({ user, onUpdate }: UserManagementModalProps
   const [updating, setUpdating] = useState<Record<string, boolean>>({});
 
   const supabase = createClient();
+  const { copy } = useCopyToClipboard();
+
+  // Generate unlock link for a tool
+  const generateUnlockLink = (toolSlug: string): string => {
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+    return `${baseUrl}/unlock/${toolSlug}`;
+  };
 
   const fetchData = useCallback(async () => {
     try {
@@ -84,7 +95,7 @@ export function UserManagementModal({ user, onUpdate }: UserManagementModalProps
   }, [user.id, fetchData]);
 
   const hasAccess = (toolId: string) => {
-    return userAccess.some(access => access.tool_id === toolId);
+    return userAccess.some(access => access.tool_id === toolId && !access.last_revoked_at);
   };
 
   const getAccessInfo = (toolId: string) => {
@@ -96,24 +107,21 @@ export function UserManagementModal({ user, onUpdate }: UserManagementModalProps
     
     try {
       if (grant) {
-        // Grant access
-        const { error } = await supabase
-          .from('user_tool_access')
-          .upsert({
-            user_id: user.id,
-            tool_id: toolId,
-            unlocked_by: 'admin_grant'
-          });
+        // Grant access using the new database function
+        const { error } = await supabase.rpc('grant_tool_access', {
+          p_user_id: user.id,
+          p_tool_id: toolId,
+          p_unlocked_by: 'admin_grant'
+        });
 
         if (error) throw error;
         toast.success('Access granted successfully');
       } else {
-        // Revoke access
-        const { error } = await supabase
-          .from('user_tool_access')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('tool_id', toolId);
+        // Revoke access using the new database function (sets last_revoked_at instead of deleting)
+        const { error } = await supabase.rpc('revoke_tool_access', {
+          p_user_id: user.id,
+          p_tool_id: toolId
+        });
 
         if (error) throw error;
         toast.success('Access revoked successfully');
@@ -152,25 +160,86 @@ export function UserManagementModal({ user, onUpdate }: UserManagementModalProps
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1">
               <Label className="text-sm text-muted-foreground">Email</Label>
-              <p className="font-medium">{user.email}</p>
+              <p className="font-medium text-sm md:text-base break-all">{user.email}</p>
             </div>
-            <div>
+            <div className="space-y-1">
               <Label className="text-sm text-muted-foreground">Name</Label>
-              <p className="font-medium">{user.name || 'Not set'}</p>
+              <p className="font-medium text-sm md:text-base">{user.name || 'Not set'}</p>
             </div>
-            <div>
+            <div className="space-y-1">
               <Label className="text-sm text-muted-foreground">Role</Label>
-              <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
+              <Badge variant={user.role === 'admin' ? 'default' : 'secondary'} className="w-fit">
                 {user.role}
               </Badge>
             </div>
-            <div>
+            <div className="space-y-1">
               <Label className="text-sm text-muted-foreground">Joined</Label>
-              <p className="font-medium">{new Date(user.created_at).toLocaleDateString()}</p>
+              <p className="font-medium text-sm md:text-base">
+                {formatDateTimeCST(user.created_at)}
+              </p>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Unlock Links Sharing */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Share className="h-5 w-5" />
+                Share Unlock Links
+              </CardTitle>
+              <CardDescription>
+                Copy unlock links to grant {user.name || user.email} access to specific tools.
+              </CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const allLinks = tools.map(tool => 
+                  `${tool.name}: ${generateUnlockLink(tool.slug)}`
+                ).join('\n');
+                copy(allLinks, 'All unlock links copied!');
+              }}
+              className="flex items-center gap-1"
+            >
+              <Copy className="h-3 w-3" />
+              Copy All
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {tools.map((tool) => (
+              <div key={tool.id} className="flex items-center justify-between p-3 border rounded-lg bg-muted/20">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Link className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="font-medium text-sm truncate">{tool.name}</p>
+                    <p className="text-xs text-muted-foreground">/unlock/{tool.slug}</p>
+                  </div>
+                </div>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => copy(
+                    generateUnlockLink(tool.slug),
+                    `Unlock link for ${tool.name} copied!`
+                  )}
+                  className="flex items-center gap-1 flex-shrink-0"
+                >
+                  <Copy className="h-3 w-3" />
+                  Copy
+                </Button>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
@@ -191,38 +260,47 @@ export function UserManagementModal({ user, onUpdate }: UserManagementModalProps
               const isUpdating = updating[tool.id];
 
               return (
-                <div key={tool.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex-1">
+                <div key={tool.id} className="flex flex-col lg:flex-row lg:items-center justify-between p-4 border rounded-lg space-y-3 lg:space-y-0">
+                  <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <h4 className="font-medium">{tool.name}</h4>
+                      <h4 className="font-medium text-sm lg:text-base truncate">{tool.name}</h4>
                       {access ? (
-                        <CheckCircle className="h-4 w-4 text-green-500" />
+                        <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
                       ) : (
-                        <XCircle className="h-4 w-4 text-muted-foreground" />
+                        <XCircle className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                       )}
                     </div>
-                    <p className="text-sm text-muted-foreground mb-2">{tool.description}</p>
+                    <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{tool.description}</p>
                     
                     {accessInfo && (
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      <div className="flex flex-col gap-1 text-xs text-muted-foreground">
                         <div className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
-                          <span>Unlocked: {new Date(accessInfo.unlocked_at).toLocaleDateString()}</span>
+                          <span>Unlocked: {formatDateTimeCST(accessInfo.last_unlocked_at)}</span>
+                          <Badge variant="outline" className="text-xs w-fit">
+                            {accessInfo.unlocked_by.replace('_', ' ')}
+                          </Badge>
                         </div>
-                        <Badge variant="outline" className="text-xs">
-                          {accessInfo.unlocked_by.replace('_', ' ')}
-                        </Badge>
+                        {accessInfo.last_revoked_at && (
+                          <div className="flex items-center gap-1 text-red-500">
+                            <Calendar className="h-3 w-3" />
+                            <span>Revoked: {formatDateTimeCST(accessInfo.last_revoked_at)}</span>
+                            <Badge variant="destructive" className="text-xs w-fit">
+                              Revoked
+                            </Badge>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
                   
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center justify-end lg:justify-start space-x-2 flex-shrink-0">
                     <Switch
                       checked={access}
                       onCheckedChange={(checked) => toggleToolAccess(tool.id, checked)}
                       disabled={isUpdating}
                     />
-                    <Label className="text-sm">
+                    <Label className="text-sm min-w-[80px] text-right lg:text-left">
                       {isUpdating ? 'Updating...' : access ? 'Granted' : 'Revoked'}
                     </Label>
                   </div>

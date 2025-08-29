@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { ExternalLink } from "lucide-react";
+import { formatDateCST } from "@/lib/date-utils";
 
 export default async function DashboardPage() {
   const user = await requireAuth();
@@ -66,7 +67,7 @@ export default async function DashboardPage() {
                     {userTool.unlocked_by === 'admin_privilege' ? (
                       <span className="text-orange-600 font-medium">Admin Privilege</span>
                     ) : (
-                      <>Unlocked: {new Date(userTool.unlocked_at).toLocaleDateString()}</>
+                      <>Unlocked: {formatDateCST(userTool.last_unlocked_at)}</>
                     )}
                   </div>
                   <Link

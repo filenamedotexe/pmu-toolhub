@@ -1,5 +1,6 @@
 import { requireAdmin } from "@/lib/auth";
 import { AdminUserTable } from "./components/admin-user-table";
+import { UnlockLinksPanel } from "./components/unlock-links-panel";
 
 export default async function AdminPage() {
   await requireAdmin();
@@ -13,7 +14,10 @@ export default async function AdminPage() {
         </p>
       </div>
 
-      <AdminUserTable />
+      <div className="space-y-8">
+        <AdminUserTable />
+        <UnlockLinksPanel />
+      </div>
     </div>
   );
 }

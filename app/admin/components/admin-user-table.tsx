@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { UserManagementModal } from "./user-management-modal";
 import { Search, Users, Settings } from "lucide-react";
+import { formatDateCST } from "@/lib/date-utils";
 
 interface User {
   id: string;
@@ -50,16 +51,16 @@ export function AdminUserTable() {
         .from('users')
         .select(`
           *,
-          user_tool_access(count)
+          user_tool_access(*)
         `)
         .order('created_at', { ascending: false });
 
       if (usersError) throw usersError;
 
-      // Transform the data to include tool count
+      // Transform the data to include tool count (only active tools)
       const usersWithCounts = usersData?.map(user => ({
         ...user,
-        tool_count: user.user_tool_access?.length || 0
+        tool_count: user.user_tool_access?.filter((access: { last_revoked_at: string | null }) => !access.last_revoked_at).length || 0
       })) || [];
 
       setUsers(usersWithCounts);
@@ -95,13 +96,13 @@ export function AdminUserTable() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <Users className="h-5 w-5" />
           <span className="text-lg font-semibold">{users.length} Total Users</span>
         </div>
         
-        <div className="relative w-72">
+        <div className="relative w-full sm:w-72">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search users by email or name..."
@@ -122,24 +123,25 @@ export function AdminUserTable() {
               {searchTerm ? 'No users match your search.' : 'No users found.'}
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>User</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Tools</TableHead>
-                  <TableHead>Joined</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="min-w-[200px]">User</TableHead>
+                    <TableHead className="min-w-[80px]">Role</TableHead>
+                    <TableHead className="min-w-[80px]">Tools</TableHead>
+                    <TableHead className="min-w-[100px]">Joined</TableHead>
+                    <TableHead className="min-w-[100px]">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                 {filteredUsers.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell>
-                      <div>
-                        <div className="font-medium">{user.name || user.email}</div>
+                      <div className="min-w-0">
+                        <div className="font-medium truncate">{user.name || user.email}</div>
                         {user.name && (
-                          <div className="text-sm text-muted-foreground">{user.email}</div>
+                          <div className="text-sm text-muted-foreground truncate">{user.email}</div>
                         )}
                       </div>
                     </TableCell>
@@ -154,7 +156,9 @@ export function AdminUserTable() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {new Date(user.created_at).toLocaleDateString()}
+                      <span className="text-sm">
+                        {formatDateCST(user.created_at)}
+                      </span>
                     </TableCell>
                     <TableCell>
                       <Dialog>
@@ -188,6 +192,7 @@ export function AdminUserTable() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>
